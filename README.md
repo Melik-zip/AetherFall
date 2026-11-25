@@ -4,8 +4,11 @@ A zero-dependency, hardware-accelerated 3D WebGL2 ocean-and-sky action game feat
 
 ## How to Run
 
+Either with this link "https://melik-zip.github.io/AetherFall/" Or with the next options:
+
 1. **Instant Launch**: Open [index.html](index.html) directly in Chrome, Edge, Firefox, or Safari — works completely offline with zero build step.
 2. **Or Local HTTP Server**: Run `play.bat` (or `python -m http.server 8765`) and open `http://localhost:8765`.
+
 
 ## Controls
 
