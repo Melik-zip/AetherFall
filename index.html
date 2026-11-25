@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AETHERFALL // 3D WebGL2 Sky-Action</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="glCanvas"></canvas>
+    <canvas id="hudCanvas"></canvas>
+
+    <!-- In-Game HUD -->
+    <div id="hud" class="hidden">
+      <div class="hud-top">
+        <div class="hud-panel hud-left">
+          <div class="sector-badge" id="hudSector">SECTOR 1 / 5</div>
+          <div class="objective-text" id="hudObjective">SHATTER 2 RESONANCE PYLONS</div>
+          <div class="telemetry-line" id="hudTelemetry">0 KM/H • ALT 3.6M</div>
+        </div>
+
+        <div id="bossBarWrap" class="boss-bar-wrap hidden">
+          <div class="boss-name" id="bossName">OBELISK WARDEN</div>
+          <div class="boss-track"><div class="boss-fill" id="bossFill"></div></div>
+        </div>
+
+        <div class="hud-panel hud-right">
+          <div class="score-row">
+            <span class="label">SCORE</span>
+            <span class="val" id="hudScore">0</span>
+          </div>
+          <div class="flow-row">
+            <span class="flow-tag" id="hudFlow">FLOW x1.0</span>
+            <div class="flow-track"><div class="flow-fill" id="hudFlowFill"></div></div>
+          </div>
+          <div class="meta-row">
+            <span id="hudShards">SHARDS: 0</span>
+            <span id="hudFps">60 FPS</span>
+          </div>
+          <div class="relic-bar" id="hudRelics"></div>
+        </div>
+      </div>
+
+      <div id="calloutBanner" class="callout-banner hidden"></div>
+      <div id="raceDelta" class="race-delta hidden">+0.00s</div>
+
+      <div id="commsBox" class="comms-box hidden">
+        <div class="comms-speaker" id="commsSpeaker">WING COMMAND // LYRA</div>
+        <div class="comms-text" id="commsText">Skimmers airborne.</div>
+      </div>
+
+      <div id="achievementToast" class="ach-toast hidden">
+        <div class="ach-eyebrow">ACHIEVEMENT UNLOCKED</div>
+        <div class="ach-title" id="achTitle">WAVE RIDER</div>
+        <div class="ach-desc" id="achDesc">Hydro-skimmed across ocean swells for 5s</div>
+      </div>
+
+      <div class="hud-bottom">
+        <div class="hud-panel vitals-panel">
+          <div class="vital-row">
+            <span class="v-label">SHIELD</span>
+            <div class="v-track"><div class="v-fill hp-fill" id="hpFill"></div></div>
+            <span class="v-num" id="hpText">120/120</span>
+          </div>
+          <div class="vital-row">
+            <span class="v-label">AETHER</span>
+            <div class="v-track"><div class="v-fill en-fill" id="enFill"></div></div>
+            <span class="v-num" id="enText">100</span>
+          </div>
+          <div class="vital-row">
+            <span class="v-label">NOVA [Q]</span>
+            <div class="v-track"><div class="v-fill nova-fill" id="novaFill"></div></div>
+            <span class="v-num" id="novaText">40%</span>
+          </div>
+        </div>
+
+        <div id="aimHint" class="aim-hint">Click viewport for mouse aim &bull; [Z] Roll &bull; [V] Weather &bull; [P] Pause</div>
+
+        <div class="hud-panel controls-mini">
+          <span><b>WASD</b> Fly</span>
+          <span><b>SPACE</b> Climb</span>
+          <span><b>SHIFT</b> Boost</span>
+          <span><b>Z/C</b> Roll</span>
+          <span><b>V</b> Weather</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Title Screen -->
+    <div id="titleOverlay" class="overlay">
+      <div class="title-card">
+        <div class="eyebrow">REAL-TIME WEBGL2 OCEAN &amp; SKY ENGINE</div>
+        <h1 class="game-title">AETHERFALL</h1>
+        <p class="subtitle">Hydro-skim over Gerstner ocean waves, soar past islands and stone arches, and battle sky-constructs across dynamic climates.</p>
+
+        <!-- Hangar Ship Selector -->
+        <div class="hangar-box">
+          <div class="hangar-head">
+            <button id="shipPrev" class="ship-arrow" title="Previous Craft">&#9664;</button>
+            <div class="ship-ident">
+              <span class="ship-name" id="shipName">VALKYRIE-IX</span>
+              <span class="ship-role" id="shipRole">BALANCED SKIMMER</span>
+            </div>
+            <button id="shipNext" class="ship-arrow" title="Next Craft">&#9654;</button>
+          </div>
+          <div class="ship-desc" id="shipDesc">Twin rapid-fire plasma cannons &amp; 4x Homing Star-Missiles.</div>
+        </div>
+
+        <!-- 4 Game Modes (2x2 clean grid) -->
+        <div class="mode-grid-2x2">
+          <button class="mode-btn primary" data-mode="expedition">
+            <span class="m-title">EXPEDITION</span>
+            <span class="m-desc">5 Sectors &bull; Relics &bull; 3 Titans</span>
+            <span class="m-best" id="bestExpedition">BEST: --</span>
+          </button>
+          <button class="mode-btn" data-mode="endless">
+            <span class="m-title">ENDLESS SURGE</span>
+            <span class="m-desc">Infinite Waves &bull; High Score</span>
+            <span class="m-best" id="bestEndless">BEST: --</span>
+          </button>
+          <button class="mode-btn" data-mode="race">
+            <span class="m-title">RING RACE</span>
+            <span class="m-desc">14-Gate Timed Aerial Trial</span>
+            <span class="m-best" id="bestRace">14 GATES</span>
+          </button>
+          <button class="mode-btn" data-mode="zen">
+            <span class="m-title">FREE FLIGHT</span>
+            <span class="m-desc">Pure Ocean &amp; Island Roam</span>
+            <span class="m-best">NO COMBAT</span>
+          </button>
+        </div>
+
+        <div class="settings-bar">
+          <div class="setting-group">
+            <label for="atmoSelect">CLIMATE</label>
+            <select id="atmoSelect">
+              <option value="sunset" selected>Golden Sunset</option>
+              <option value="noon">Emerald Noon</option>
+              <option value="aurora">Aurora Twilight</option>
+              <option value="storm">Tempest Surge</option>
+              <option value="auto">Auto Cycle (Expedition)</option>
+            </select>
+          </div>
+          <div class="setting-group">
+            <label for="sectorSelect">SECTOR</label>
+            <select id="sectorSelect">
+              <option value="1" selected>Sector 1 (Patrol &amp; Gunboats)</option>
+              <option value="2">Sector 2 (Heavy Vanguard)</option>
+              <option value="3">Sector 3 (Boss: Obelisk Warden)</option>
+              <option value="4">Sector 4 (Boss: Abyssal Leviathan)</option>
+              <option value="5">Sector 5 (Boss: Eclipse Seraph)</option>
+            </select>
+          </div>
+          <div class="setting-group">
+            <label for="qualitySelect">GRAPHICS</label>
+            <select id="qualitySelect">
+              <option value="ultra">Ultra (2K Shadows + Bloom)</option>
+              <option value="high" selected>High (1K Shadows + Bloom)</option>
+              <option value="fast">Performance (Single-Pass)</option>
+            </select>
+          </div>
+          <div class="setting-group">
+            <label for="volSlider">AUDIO</label>
+            <input id="volSlider" type="range" min="0" max="100" value="65" />
+          </div>
+        </div>
+
+        <button id="openCodexBtn" class="codex-launch-btn">PILOT CODEX &amp; ACHIEVEMENTS [K]</button>
+
+        <div class="controls-legend">
+          <div><kbd>WASD</kbd> Fly / Bank</div>
+          <div><kbd>SPACE</kbd> Climb / Glide</div>
+          <div><kbd>SHIFT</kbd> Sonic Boost</div>
+          <div><kbd>Z / C</kbd> Barrel Roll</div>
+          <div><kbd>LMB / J</kbd> Primary Fire</div>
+          <div><kbd>RMB / E</kbd> Missiles</div>
+          <div><kbd>Q / F</kbd> Solar Nova</div>
+          <div><kbd>V</kbd> Cycle Weather</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Relic Upgrade Draft Modal -->
+    <div id="relicOverlay" class="overlay hidden">
+      <div class="modal-card wide">
+        <div class="eyebrow">SECTOR CLEARED &bull; CHOOSE AN AETHER RELIC</div>
+        <h2>FORGE YOUR SKIMMER</h2>
+        <div class="relic-grid" id="relicCards"></div>
+        <div class="hint-line">Press <kbd>1</kbd>, <kbd>2</kbd>, or <kbd>3</kbd> or click a card to equip</div>
+      </div>
+    </div>
+
+    <!-- Pause Modal -->
+    <div id="pauseOverlay" class="overlay hidden">
+      <div class="modal-card">
+        <div class="eyebrow">SIMULATION PAUSED</div>
+        <h2>FLIGHT HOLD</h2>
+        <div class="settings-bar vertical">
+          <div class="setting-group">
+            <label for="pauseAtmo">CLIMATE</label>
+            <select id="pauseAtmo">
+              <option value="sunset" selected>Golden Sunset</option>
+              <option value="noon">Emerald Noon</option>
+              <option value="aurora">Aurora Twilight</option>
+              <option value="storm">Tempest Surge</option>
+              <option value="auto">Auto Cycle</option>
+            </select>
+          </div>
+          <div class="setting-group">
+            <label for="pauseQuality">GRAPHICS</label>
+            <select id="pauseQuality">
+              <option value="ultra">Ultra</option>
+              <option value="high" selected>High</option>
+              <option value="fast">Performance</option>
+            </select>
+          </div>
+          <div class="setting-group">
+            <label for="pauseVol">AUDIO</label>
+            <input id="pauseVol" type="range" min="0" max="100" value="65" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button id="resumeBtn" class="action-btn primary">RESUME FLIGHT</button>
+          <button id="pauseCodexBtn" class="action-btn">PILOT CODEX [K]</button>
+          <button id="quitBtn" class="action-btn">RETURN TO TITLE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- End-of-Run Summary Modal -->
+    <div id="endOverlay" class="overlay hidden">
+      <div class="modal-card">
+        <div class="eyebrow" id="endEyebrow">EXPEDITION COMPLETE</div>
+        <h2 id="endTitle">OCEAN SKY VICTORY</h2>
+        <div class="stats-grid" id="endStats"></div>
+        <div class="btn-row">
+          <button id="continueEndlessBtn" class="action-btn primary hidden">CONTINUE ENDLESS SURGE</button>
+          <button id="retryBtn" class="action-btn primary">LAUNCH AGAIN</button>
+          <button id="endTitleBtn" class="action-btn">TITLE SCREEN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pilot Codex & Achievements Modal -->
+    <div id="codexOverlay" class="overlay hidden">
+      <div class="modal-card wide codex-card">
+        <div class="codex-top">
+          <div>
+            <div class="eyebrow">AETHERFALL FLIGHT ARCHIVE</div>
+            <h2>PILOT CODEX</h2>
+          </div>
+          <button id="closeCodexBtn" class="action-btn">CLOSE [ESC]</button>
+        </div>
+        <div class="codex-tabs">
+          <button class="codex-tab active" data-tab="fleet">FLEET</button>
+          <button class="codex-tab" data-tab="hostiles">HOSTILES &amp; TITANS</button>
+          <button class="codex-tab" data-tab="world">WORLD &amp; CLIMATES</button>
+          <button class="codex-tab" data-tab="achievements">ACHIEVEMENTS</button>
+        </div>
+        <div class="codex-grid" id="codexBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <script defer src="src/math.js"></script>
+  <script defer src="src/audio.js"></script>
+  <script defer src="src/atmosphere.js"></script>
+  <script defer src="src/hangar.js"></script>
+  <script defer src="src/shaders.js"></script>
+  <script defer src="src/meshes.js"></script>
+  <script defer src="src/webgl.js"></script>
+  <script defer src="src/world.js"></script>
+  <script defer src="src/wildlife.js"></script>
+  <script defer src="src/weather_fx.js"></script>
+  <script defer src="src/particles.js"></script>
+  <script defer src="src/naval.js"></script>
+  <script defer src="src/ghost.js"></script>
+  <script defer src="src/entities.js"></script>
+  <script defer src="src/comms.js"></script>
+  <script defer src="src/codex.js"></script>
+  <script defer src="src/ui.js"></script>
+  <script defer src="src/game.js"></script>
+</body>
+</html>
